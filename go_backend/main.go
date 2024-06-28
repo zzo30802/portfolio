@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"go_backend/api"
+	"go_backend/models"
 	"go_backend/repositories"
 	"go_backend/services"
 
@@ -15,12 +18,23 @@ import (
 )
 
 func main() {
-	// 連接數據庫
-	dsn := "host=localhost user=youruser password=yourpassword dbname=yourdbname port=5432 sslmode=disable"
+	// 從環境變量獲取數據庫連接信息
+	dbHost := os.Getenv("DB_HOST")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dbPort := os.Getenv("DB_PORT")
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		dbHost, dbUser, dbPassword, dbName, dbPort)
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// 自動遷移
+	db.AutoMigrate(&models.Project{})
 
 	// 初始化存儲庫和服務
 	projectRepo := &repositories.ProjectRepository{DB: db}
@@ -40,7 +54,6 @@ func main() {
 		AllowedOrigins: []string{"http://localhost:3000"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 	})
-
 	handler := c.Handler(r)
 
 	log.Println("Server is running on port 8080")
